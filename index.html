@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="pt-br" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gerador — Painel</title>
+  <link rel="icon" href="img/logo.ico" />
+  <style>
+    :root{
+      --bg:#081225;--card:#0c1a33;--border:#1b2b4a;--text:#e9f1ff;--muted:#9ab0d1;
+      --primary:#3b82f6;--ok:#10b981;--danger:#ef4444;--warn:#f59e0b;
+      --shadow:0 12px 40px rgba(0,0,0,.35);--radius:16px;
+      --sidebar:#07122a;
+      --chip:rgba(255,255,255,.04);
+      --focus:rgba(59,130,246,.55);
+    }
+    html[data-theme="light"]{
+      --bg:#f5f7ff;--card:#ffffff;--border:#d8e2ff;--text:#0b1a33;--muted:#51607a;
+      --shadow:0 12px 40px rgba(11,26,51,.12);--sidebar:#ffffff;--chip:rgba(11,26,51,.05);
+      --focus:rgba(59,130,246,.35);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:
+        radial-gradient(1100px 520px at 18% 10%, rgba(59,130,246,.16), transparent 60%),
+        radial-gradient(900px 520px at 78% 12%, rgba(16,185,129,.10), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+      display:flex;
+    }
+     .sidebar{
+      width:280px;
+      padding:18px 14px;
+      border-right:1px solid var(--border);
+      background:linear-gradient(180deg, color-mix(in srgb, var(--sidebar) 92%, transparent), color-mix(in srgb, var(--sidebar) 78%, transparent));
+      backdrop-filter:blur(10px);
+      position:sticky;top:0;height:100vh;transition:width .22s ease, padding .22s ease;
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;
+      padding:10px 12px;border-radius:14px;border:1px solid var(--border);
+      background:color-mix(in srgb, var(--card) 86%, transparent);
+      box-shadow:var(--shadow);
+      margin-bottom:14px;
+    }
+    .brand img{width:34px;height:34px;border-radius:10px}
+    .brand .t1{font-weight:800;letter-spacing:.2px}
+    .brand .t2{font-size:12px;color:var(--muted);margin-top:2px}
+    .btns{display:flex;gap:10px;margin:10px 0 14px}
+    button{
+      border-radius:12px;border:1px solid var(--border);
+      background:var(--chip); color:var(--text);
+      padding:10px 12px; cursor:pointer; font-size:14px;
+      outline:none;
+    }
+    button:hover{background:color-mix(in srgb, var(--text) 10%, transparent)}
+    button:focus{box-shadow:0 0 0 3px var(--focus)}
+    .menu{display:flex;flex-direction:column;gap:8px}
+     .item{
+      display:flex;align-items:center;gap:10px;
+      transition: background .18s ease, border-color .18s ease, transform .18s ease;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid color-mix(in srgb, var(--border) 70%, transparent);
+      background:color-mix(in srgb, var(--card) 76%, transparent);
+      cursor:pointer;
+      user-select:none;
+    }
+    .item:hover{background:color-mix(in srgb, var(--primary) 10%, transparent);border-color:color-mix(in srgb, var(--primary) 28%, transparent);transform:translateY(-1px)}
+    .item.active{
+      background:color-mix(in srgb, var(--primary) 18%, transparent);
+      border-color:color-mix(in srgb, var(--primary) 40%, transparent);
+      box-shadow:0 10px 24px rgba(0,0,0,.18);
+    }
+    .item .icon{
+      width:34px;height:34px;border-radius:12px;
+      display:grid;place-items:center;
+      background:color-mix(in srgb, var(--primary) 18%, transparent);
+      border:1px solid color-mix(in srgb, var(--primary) 30%, transparent);
+      font-size:16px;
+      flex:0 0 auto;
+    }
+    .item .txt{flex:1 1 auto}
+    .item .txt .title{font-weight:700}
+    .item .txt .sub{font-size:12px;color:var(--muted);margin-top:2px}
+     .content{
+      flex:1 1 auto;
+      transition: padding-left .22s ease;
+      padding:18px;
+      min-width:0;
+    }
+    .topbar{
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding:14px;border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 78%, transparent));
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+      margin-bottom:12px;
+    }
+    .crumb{display:flex;flex-direction:column;gap:2px}
+    .crumb .h{font-weight:800;font-size:16px}
+    .crumb .p{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn-primary{
+      background:color-mix(in srgb, var(--primary) 18%, transparent);
+      border-color:color-mix(in srgb, var(--primary) 35%, transparent);
+    }
+    .btn-primary:hover{background:color-mix(in srgb, var(--primary) 24%, transparent)}
+    .frame{
+      width:100%;
+      height:calc(100vh - 18px - 12px - 86px); /* padding + margin + topbar */
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      background:color-mix(in srgb, var(--card) 86%, transparent);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    iframe{
+      width:100%;
+      height:100%;
+      border:0;
+      background:transparent;
+    }
+    
+    /* 📱 Mobile: menu vira off-canvas */
+    @media (max-width: 980px){
+      body{flex-direction:column}
+      .sidebar{
+        width:280px;
+        height:100vh;
+        position:fixed;
+        left:0; top:0;
+        transform:translateX(-105%);
+        transition:transform .22s ease;
+        z-index:9998;
+      }
+      body.mobile-menu-open .sidebar{transform:translateX(0)}
+      .content{padding:18px}
+      .frame{height:72vh}
+      .backdrop{
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.35);
+        z-index:9997;
+      }
+      body.mobile-menu-open .backdrop{display:block}
+      .mobile-hamburger{
+        display:inline-flex !important;
+      }
+    }
+    .mobile-hamburger{display:none}
+
+    @media (max-width: 980px){
+      body{flex-direction:column}
+      .sidebar{width:100%;height:auto;position:relative}
+      .frame{height:72vh}
+    }
+  
+    body.collapsed .sidebar{
+      width:80px;
+      padding:18px 10px;
+    }
+    body.collapsed .brand .t1,
+    body.collapsed .brand .t2,
+    body.collapsed .item .txt,
+    body.collapsed .btns button:not(#btnToggleMenu){
+      display:none;
+    }
+    body.collapsed .item{
+      justify-content:center;
+    }
+    body.collapsed .content{
+      padding-left:18px;
+    }
+
+  
+    /* 🔹 Tooltip quando o menu estiver recolhido */
+    .tip{
+      position:fixed;
+      z-index:9999;
+      pointer-events:none;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:color-mix(in srgb, var(--card) 92%, transparent);
+      box-shadow:var(--shadow);
+      color:var(--text);
+      font-size:12px;
+      transform:translateY(-6px);
+      opacity:0;
+      transition:opacity .12s ease, transform .12s ease;
+      white-space:nowrap;
+    }
+    .tip.show{opacity:1;transform:translateY(0)}
+
+  
+    /* 🔻 Rodapé */
+    .footer{
+      margin-top:14px;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:linear-gradient(180deg,
+        color-mix(in srgb, var(--card) 92%, transparent),
+        color-mix(in srgb, var(--card) 78%, transparent)
+      );
+      box-shadow:var(--shadow);
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="img/logo.ico" alt="Logo" />
+      <div>
+        <div class="t1">Painel do Sistema</div>
+        <div class="t2">Recibos • Histórico • Relatórios</div>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button id="btnToggleMenu" title="Recolher/Expandir menu">☰</button>
+      <button id="btnTema" title="Alternar tema">🌙 Escuro</button>
+      <button id="btnRecarregar" title="Recarregar a tela aberta">↻ Recarregar</button>
+    </div>
+
+    <div class="menu" id="menu">
+      <div class="item active" data-src="gerador.html" data-title="Gerador de Recibos" data-tip="Gerador de Recibos" data-sub="Emitir, editar e gerenciar recibos">
+        <div class="icon">🧾</div>
+        <div class="txt">
+          <div class="title">Gerador</div>
+          <div class="sub">Emissão / Edição</div>
+        </div>
+      </div>
+
+      <div class="item" data-src="historico.html" data-title="Histórico" data-tip="Histórico" data-sub="Excluídos, restaurar e auditoria">
+        <div class="icon">🕘</div>
+        <div class="txt">
+          <div class="title">Histórico</div>
+          <div class="sub">Restaurar / Auditoria</div>
+        </div>
+      </div>
+
+      <div class="item" data-src="relatorios.html" data-title="Relatórios (Entradas × Saídas)" data-tip="Relatórios (Entradas × Saídas)" data-sub="Resumo diário e pizza por bairro">
+        <div class="icon">📈</div>
+        <div class="txt">
+          <div class="title">Relatórios</div>
+          <div class="sub">Entradas × Saídas</div>
+        </div>
+      </div>
+
+      <div class="item" data-src="relatorios_recibos.html" data-title="Relatórios (Recibos)" data-tip="Relatórios (Recibos)" data-sub="Filtros por bairro/setor + vencidos/a vencer">
+        <div class="icon">📊</div>
+        <div class="txt">
+          <div class="title">Recibos</div>
+          <div class="sub">Relatórios avançados</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="backdrop" id="backdrop"></div>
+
+  <main class="content">
+    <div class="topbar">
+      <div class="crumb">
+        <div class="h" id="pageTitle">Gerador de Recibos</div>
+        <div class="p" id="pageSub">Emitir, editar e gerenciar recibos</div>
+      </div>
+      <div class="actions">
+        <button class="btn-primary mobile-hamburger" id="btnMobileMenu" title="Menu">☰ Menu</button>
+        <button class="btn-primary" id="btnNovaAba" title="Abrir a tela atual em nova aba">↗ Abrir em nova aba</button>
+      </div>
+    </div>
+
+    <div class="frame">
+      <iframe id="frame" src="gerador.html" loading="lazy"></iframe>
+    </div>
+  
+  <footer class="footer">
+    © 2026 <strong>BSS Sistemas</strong> — Todos os direitos reservados.
+  </footer>
+
+  </main>
+
+  <div class="tip" id="tip"></div>
+
+  <script>
+    const $ = (s)=>document.querySelector(s);
+    const frame = $("#frame");
+    const pageTitle = $("#pageTitle");
+    const pageSub = $("#pageSub");
+
+    function applyTheme(theme){
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("app_theme", theme);
+      $("#btnTema").textContent = theme === "light" ? "🌞 Claro" : "🌙 Escuro";
+    }
+    (function initTheme(){
+      const saved = localStorage.getItem("app_theme");
+      applyTheme(saved === "light" ? "light" : "dark");
+    })();
+
+    $("#btnTema").addEventListener("click", ()=>{
+      const cur = document.documentElement.getAttribute("data-theme") || "dark";
+      applyTheme(cur === "dark" ? "light" : "dark");
+    });
+
+    $("#btnRecarregar").addEventListener("click", ()=>{
+      try{ frame.contentWindow.location.reload(); }catch(e){ frame.src = frame.src; }
+    });
+
+    $("#btnNovaAba").addEventListener("click", ()=>{
+      window.open(frame.getAttribute("src"), "_blank");
+    });
+
+    $("#menu").addEventListener("click", (e)=>{
+      const item = e.target.closest(".item");
+      if(!item) return;
+
+      document.querySelectorAll(".item").forEach(x=>x.classList.remove("active"));
+      item.classList.add("active");
+
+      const src = item.getAttribute("data-src");
+      const t = item.getAttribute("data-title") || "Painel";
+      const s = item.getAttribute("data-sub") || "";
+
+      pageTitle.textContent = t;
+      pageSub.textContent = s;
+      frame.setAttribute("src", src);
+
+      // No mobile, fecha o menu ao escolher uma opção
+      if (window.matchMedia && window.matchMedia('(max-width: 980px)').matches) setMobile(false);
+    });
+  
+    const btnToggle = document.getElementById("btnToggleMenu");
+    function setMenu(state){
+      document.body.classList.toggle("collapsed", state === "collapsed");
+      localStorage.setItem("menu_state", state);
+    }
+    (function initMenu(){
+      const s = localStorage.getItem("menu_state");
+      if (s === "collapsed") setMenu("collapsed");
+    })();
+    btnToggle.addEventListener("click", ()=>{
+      const isCollapsed = document.body.classList.contains("collapsed");
+      setMenu(isCollapsed ? "expanded" : "collapsed");
+    });
+
+  
+    // 🔹 Tooltip no modo recolhido
+    const tip = document.getElementById("tip");
+    function showTip(text, x, y){
+      if(!text) return;
+      tip.textContent = text;
+      tip.style.left = (x + 14) + "px";
+      tip.style.top  = (y + 10) + "px";
+      tip.classList.add("show");
+    }
+    function hideTip(){ tip.classList.remove("show"); }
+
+    // 📱 Mobile menu
+    const btnMobileMenu = document.getElementById("btnMobileMenu");
+    const backdrop = document.getElementById("backdrop");
+    function setMobile(open){
+      document.body.classList.toggle("mobile-menu-open", !!open);
+    }
+    if (btnMobileMenu){
+      btnMobileMenu.addEventListener("click", ()=> setMobile(!document.body.classList.contains("mobile-menu-open")));
+    }
+    if (backdrop){
+      backdrop.addEventListener("click", ()=> setMobile(false));
+    }
+
+    // Tooltip only when collapsed
+    document.getElementById("menu").addEventListener("mousemove", (e)=>{
+      if(!document.body.classList.contains("collapsed")) return hideTip();
+      const item = e.target.closest(".item");
+      if(!item) return hideTip();
+      showTip(item.getAttribute("data-tip") || item.getAttribute("data-title") || "", e.clientX, e.clientY);
+    });
+    document.getElementById("menu").addEventListener("mouseleave", hideTip);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Histórico de Recibos</title>
+  <style>
+    :root{--bg:#081225;--card:#0c1a33;--border:#1b2b4a;--text:#e8eefc;--muted:#9bb0d1;--accent:#60a5fa;--good:#22c55e;--bad:#ef4444;--warn:#f59e0b;--shadow:0 12px 40px rgba(0,0,0,.35);--radius:16px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:radial-gradient(1200px 600px at 15% 10%, rgba(96,165,250,.16), transparent 60%),radial-gradient(900px 500px at 85% 25%, rgba(139,92,246,.14), transparent 60%),var(--bg);color:var(--text);padding:20px}
+    h1{margin:0 0 14px;font-size:42px;letter-spacing:.3px}
+    .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .control{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px;background:rgba(12,26,51,.65);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);backdrop-filter:blur(8px)}
+    .spacer{flex:1 1 auto}
+    select,input,button{border-radius:12px;border:1px solid var(--border);background:rgba(8,18,37,.65);color:var(--text);padding:10px 12px;outline:none;font-size:14px}
+    input[type="date"]{min-width:165px}
+    input[type="text"]{min-width:260px}
+    button{cursor:pointer;transition:transform .06s ease,opacity .2s ease,filter .2s ease;user-select:none;white-space:nowrap}
+    button:hover{filter:brightness(1.06)}
+    button:active{transform:translateY(1px)}
+    button.primary{background:linear-gradient(180deg, rgba(96,165,250,.35), rgba(96,165,250,.18));border-color:rgba(96,165,250,.45)}
+    button.ghost{background:transparent}
+    button.danger{background:linear-gradient(180deg, rgba(239,68,68,.30), rgba(239,68,68,.14));border-color:rgba(239,68,68,.45)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .chipbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .chip{padding:7px 10px;border-radius:999px;border:1px solid rgba(27,43,74,.85);background:rgba(8,18,37,.45);color:rgba(232,238,252,.9);font-size:13px}
+    .chip:hover{filter:brightness(1.06)}
+    .chip.active{border-color:rgba(96,165,250,.55);background:rgba(96,165,250,.18)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    @media (max-width:1050px){.grid{grid-template-columns:1fr}}
+    .panel{background:rgba(12,26,51,.70);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(10px)}
+    .panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 14px 10px;border-bottom:1px solid rgba(27,43,74,.7)}
+    .panel-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .pill{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);color:var(--muted);background:rgba(8,18,37,.50)}
+    .pill.good{border-color:rgba(34,197,94,.35);color:rgba(34,197,94,.95)}
+    .pill.bad{border-color:rgba(239,68,68,.35);color:rgba(239,68,68,.95)}
+    .panel-body{padding:12px 14px 14px}
+    .empty{color:var(--muted);padding:10px 0 14px}
+    .day{margin-top:12px;padding-top:12px;border-top:1px dashed rgba(155,176,209,.22)}
+    .day h3{margin:0 0 10px;font-size:14px;font-weight:800;color:rgba(147,197,253,.95);display:flex;align-items:center;gap:8px}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px 10px;font-size:13px;vertical-align:top;border-bottom:1px solid rgba(27,43,74,.55)}
+    th{color:rgba(203,213,225,.95);font-weight:800;text-align:left;position:sticky;top:0;background:rgba(12,26,51,.92);backdrop-filter:blur(10px);z-index:1}
+    tr:hover td{background:rgba(8,18,37,.35)}
+    .tag-time{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid rgba(148,163,184,.28);background:rgba(8,18,37,.40);font-variant-numeric:tabular-nums}
+    .tag-time.entrada{border-color:rgba(34,197,94,.35)}
+    .tag-time.saida{border-color:rgba(239,68,68,.35)}
+    .muted{color:var(--muted);font-size:12px}
+    .money{font-variant-numeric:tabular-nums;white-space:nowrap}
+    .actions{text-align:right;white-space:nowrap}
+    .btn-mini{padding:8px 10px;border-radius:12px;font-size:13px}
+    .footer-cards{margin-top:12px;display:flex;gap:10px;flex-wrap:wrap}
+    .stat{flex:1 1 170px;background:rgba(8,18,37,.45);border:1px solid rgba(27,43,74,.7);border-radius:14px;padding:10px 12px}
+    .stat .k{color:var(--muted);font-size:12px}
+    .stat .v{font-weight:900;font-size:18px;margin-top:2px}
+    .summary{margin:8px 0 14px;display:flex;gap:10px;flex-wrap:wrap}
+    .summary .box{flex:1 1 240px;padding:12px 12px;border-radius:16px;border:1px solid rgba(27,43,74,.8);background:rgba(12,26,51,.55);box-shadow:var(--shadow);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .summary .box .left .t{font-size:12px;color:var(--muted)}
+    .summary .box .left .v{font-size:20px;font-weight:900;margin-top:2px}
+    .summary .box .right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-variant-numeric:tabular-nums}
+    .summary .delta{font-size:12px;color:rgba(226,232,240,.8)}
+    .summary .delta b{color:var(--text)}
+    .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:999}
+    .modal{width:min(560px,100%);background:linear-gradient(180deg, rgba(12,26,51,.95), rgba(8,18,37,.92));border:1px solid rgba(27,43,74,.9);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .modal-head{padding:14px 16px 10px;border-bottom:1px solid rgba(27,43,74,.75);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .modal-title{font-size:16px;font-weight:900}
+    .modal-body{padding:14px 16px;color:rgba(232,238,252,.92)}
+    .modal-body b{color:var(--text)}
+    .modal-actions{padding:12px 16px 16px;display:flex;justify-content:flex-end;gap:10px}
+    .toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:min(860px, calc(100% - 32px))}
+    .toast{pointer-events:auto;background:rgba(12,26,51,.92);border:1px solid rgba(27,43,74,.9);border-left:4px solid rgba(96,165,250,.9);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow);display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    .toast.good{border-left-color:rgba(34,197,94,.9)}
+    .toast.bad{border-left-color:rgba(239,68,68,.9)}
+    .toast .t{font-weight:900;margin-bottom:2px}
+    .toast .d{color:var(--muted);font-size:12px}
+    .toast .x{border:none;background:transparent;color:rgba(232,238,252,.75);cursor:pointer;padding:4px 8px;font-size:16px}
+    .kbd{font-size:12px;color:rgba(226,232,240,.8);border:1px solid rgba(27,43,74,.85);background:rgba(8,18,37,.45);border-radius:10px;padding:4px 8px}
+  
+    .btn-mini.danger{border:1px solid rgba(244,63,94,.45);background:rgba(244,63,94,.12);color:#fecaca}
+    .btn-mini.danger:hover{background:rgba(244,63,94,.18)}
+
+    .pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;padding-top:10px;border-top:1px dashed rgba(27,43,74,.85)}
+    .pager-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .pager-info{font-size:13px;color:rgba(228,236,248,.78)}
+    .pager-right{display:flex;align-items:center;gap:8px}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,.12)}
+    .btn.ghost:hover{background:rgba(255,255,255,.06)}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .pager-size{min-width:80px}
+</style>
+</head>
+<body>
+  <div class="toast-wrap" id="toasts"></div>
+
+  <h1>Histórico de Recibos</h1>
+
+  <div class="toolbar">
+    <div class="control">
+      <select id="tipo">
+        <option value="">Entradas e Saídas</option>
+        <option value="entrada">Somente Entradas</option>
+        <option value="saida">Somente Saídas</option>
+      </select>
+
+      <input id="data" type="date" />
+      <input id="busca" type="text" placeholder="Buscar por nome, endereço, bairro, telefone…" />
+
+      <button class="primary" onclick="carregar()">Filtrar</button>
+      <button class="ghost" onclick="limpar()">Limpar</button>
+
+      <span class="kbd" title="Atalho: Focar na busca">Ctrl+K</span>
+    </div>
+
+    <div class="control">
+      <div class="chipbar" role="group" aria-label="Filtros rápidos">
+        <button class="chip" id="chipHoje" onclick="setQuick('hoje')">Hoje</button>
+        <button class="chip" id="chip7" onclick="setQuick('7')">Últimos 7 dias</button>
+        <button class="chip" id="chip30" onclick="setQuick('30')">Últimos 30 dias</button>
+        <button class="chip" id="chipAll" onclick="setQuick('all')">Tudo</button>
+      </div>
+    </div>
+
+    <div class="control">
+      <span class="pill" id="badgeInfo">Filtro: nenhum</span>
+      <div class="spacer"></div>
+      <button class="ghost" onclick="exportCSV()">Exportar CSV (filtro)</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summaryBar">
+    <div class="box">
+      <div class="left">
+        <div class="t">Entradas no filtro</div>
+        <div class="v" id="sumEntradas">R$ 0,00</div>
+      </div>
+      <div class="right">
+        <div class="delta">Registros: <b id="sumEntradasQtd">0</b></div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="left">
+        <div class="t">Saídas no filtro</div>
+        <div class="v" id="sumSaidas">R$ 0,00</div>
+      </div>
+      <div class="right">
+        <div class="delta">Registros: <b id="sumSaidasQtd">0</b></div>
+      </div>
+    </div>
+    <div class="box">
+      <div class="left">
+        <div class="t">Saldo (Entradas - Saídas)</div>
+        <div class="v" id="sumSaldo">R$ 0,00</div>
+      </div>
+      <div class="right">
+        <div class="delta">Diferença: <b id="sumDelta">0</b></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="pill good">ENTRADA</span> Entradas (por data)</div>
+        <span class="pill" id="entradasStatus">—</span>
+      </div>
+      <div class="panel-body" id="entradas">Carregando...</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <div class="panel-title"><span class="pill bad">SAÍDA</span> Saídas (por data)</div>
+        <span class="pill" id="saidasStatus">—</span>
+      </div>
+      <div class="panel-body" id="saidas">Carregando...</div>
+    </section>
+  </div>
+
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle">Confirmar restauração</div>
+        <button class="x" onclick="closeModal()" aria-label="Fechar">✕</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="ghost" onclick="closeModal()">Cancelar</button>
+        <button class="primary" id="btnConfirm">Restaurar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const fmtBRL = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
+  function toast(type,title,desc){
+    const wrap=document.getElementById('toasts');
+    const el=document.createElement('div');
+    el.className=`toast ${type||''}`.trim();
+    el.innerHTML=`<div><div class="t">${title}</div>${desc?`<div class="d">${desc}</div>`:''}</div><button class="x" aria-label="Fechar">✕</button>`;
+    el.querySelector('.x').onclick=()=>el.remove();
+    wrap.appendChild(el);
+    setTimeout(()=>{if(el.isConnected) el.remove()},4500);
+  }
+  function normalizeStr(s){return (s??'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+  function escapeHTML(s){return (s??'').toString().replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+
+  function groupByDay(items){
+    const map={};
+    for(const it of items){
+      const d=(it.ts||'').slice(0,10);
+      if(!map[d]) map[d]=[];
+      map[d].push(it);
+    }
+    return map;
+  }
+  function sumValor(items){
+    let total=0;
+    for(const it of items){
+      const n=Number(it.valor);
+      if(Number.isFinite(n)) total+=n;
+    }
+    return total;
+  }
+  function formatDateTimeBR(ts){
+    if(!ts||ts.length<16) return ts||'';
+    const y=ts.slice(0,4),m=ts.slice(5,7),d=ts.slice(8,10),hh=ts.slice(11,13),mm=ts.slice(14,16);
+    return `${d}/${m}/${y} ${hh}:${mm}`;
+  }
+  function buildFilterBadge(){
+    const tipo=document.getElementById('tipo').value;
+    const data=document.getElementById('data').value;
+    const busca=document.getElementById('busca').value.trim();
+    const parts=[];
+    if(tipo) parts.push(`tipo=${tipo}`);
+    if(data) parts.push(`data=${data}`);
+    if(busca) parts.push(`busca="${busca}"`);
+    document.getElementById('badgeInfo').textContent=parts.length?`Filtro: ${parts.join(' • ')}`:'Filtro: nenhum';
+  }
+  function setActiveChip(which){
+    for(const id of ['chipHoje','chip7','chip30','chipAll']) document.getElementById(id).classList.remove('active');
+    const map={hoje:'chipHoje','7':'chip7','30':'chip30',all:'chipAll'};
+    if(map[which]) document.getElementById(map[which]).classList.add('active');
+  }
+  let quickDays=null;
+  function setQuick(which){
+    const today=new Date();
+    const pad=(n)=>String(n).padStart(2,'0');
+    const toISO=(dt)=>`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+    if(which==='hoje'){document.getElementById('data').value=toISO(today);setActiveChip('hoje');carregar();return;}
+    if(which==='7'||which==='30'){document.getElementById('data').value='';quickDays=Number(which);setActiveChip(which);carregar();return;}
+    document.getElementById('data').value='';quickDays=null;setActiveChip('all');carregar();
+  }
+
+  let modalConfirmAction=null;
+  function openModal(html,onConfirm,opts){
+    modalConfirmAction=onConfirm;
+    opts = opts || {};
+    document.getElementById('modalBody').innerHTML=html;
+    document.getElementById('backdrop').style.display='flex';
+
+    const btn=document.getElementById('btnConfirm');
+    const btnCancel=document.getElementById('btnCancel');
+
+    // Texto/estilo do botão principal
+    btn.disabled=false;
+    btn.textContent = opts.confirmText || 'Confirmar';
+    btn.classList.remove('danger','primary');
+    btn.classList.add(opts.confirmClass || 'primary');
+
+    // Cancelar visível por padrão
+    if (btnCancel){
+      btnCancel.style.display = (opts.hideCancel ? 'none' : '');
+    }
+
+    btn.onclick=async()=>{
+      try{
+        btn.disabled=true;
+        btn.textContent= opts.loadingText || 'Processando...';
+        await (modalConfirmAction ? modalConfirmAction() : Promise.resolve());
+      }catch(e){
+        toast('bad', opts.errorTitle || 'Falha', e.message||String(e));
+      }finally{
+        closeModal();
+      }
+    };
+  }
+  function closeModal(){
+    document.getElementById('backdrop').style.display='none';
+    modalConfirmAction=null;
+  }
+
+
+  async function apiGet(url){
+    const r=await fetch(url,{cache:'no-store'});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.erro||data.error||('HTTP '+r.status));
+    return data;
+  }
+  async function apiPost(url,body){
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json; charset=utf-8'},body:JSON.stringify(body||{})});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.erro||data.error||('HTTP '+r.status));
+    return data;
+  }
+
+  function filterItems(items){
+    const busca=normalizeStr(document.getElementById('busca').value.trim());
+    const data=document.getElementById('data').value;
+    let out=items.slice();
+
+    if(data){
+      out=out.filter(it=>(it.ts||'').slice(0,10)===data);
+    } else if(quickDays){
+      const now=new Date();
+      const cutoff=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+      cutoff.setDate(cutoff.getDate()-(quickDays-1));
+      const cutoffISO=cutoff.toISOString().slice(0,10);
+      out=out.filter(it=>(it.ts||'').slice(0,10)>=cutoffISO);
+    }
+
+    if(busca){
+      out=out.filter(it=>{
+        const hay=normalizeStr([it.nome,it.endereco,it.bairro,it.telefone,it.telefonec,it.vencimento].filter(Boolean).join(' | '));
+        return hay.includes(busca);
+      });
+    }
+    return out;
+  }
+
+  function renderPanel(containerId,statusId,items,tipoTag){
+    const el=document.getElementById(containerId);
+    const st=document.getElementById(statusId);
+    const total=sumValor(items);
+    const count=items.length;
+    st.textContent=`${count} registro(s) • ${fmtBRL.format(total)}`;
+
+    if(!count){
+      el.innerHTML=`<div class="empty">Nenhum registro.</div>
+        <div class="footer-cards">
+          <div class="stat"><div class="k">Total</div><div class="v">${fmtBRL.format(0)}</div></div>
+          <div class="stat"><div class="k">Registros</div><div class="v">0</div></div>
+        </div>`;
+      return;
+    }
+
+    items.sort((a,b)=>(b.ts||'').localeCompare(a.ts||''));
+    const meta=pageSlice(items,tipoTag);
+    const paged=meta.pageItems;
+    const grouped=groupByDay(paged);
+    const days=Object.keys(grouped).sort().reverse();
+    let html='';
+    for(const day of days){
+      html+=`<div class="day">
+        <h3>${day}</h3>
+        <table>
+          <thead><tr>
+            <th style="width:86px;">Hora</th>
+            <th>Cliente</th>
+            <th style="width:110px;">Venc.</th>
+            <th>Endereço</th>
+            <th style="width:110px;">Valor</th>
+            ${(tipoTag==='saida' || tipoTag==='entrada')?`<th class="actions" style="width:138px;">Ações</th>`:''}
+          </tr></thead><tbody>`;
+      for(const it of grouped[day]){
+        const hora=(it.ts||'').slice(11,16);
+        const contatos=[it.telefone,it.telefonec].filter(Boolean).join(' • ');
+        const endereco=`${it.endereco||''}${it.bairro?`<div class="muted">${it.bairro}</div>`:''}`;
+        const v=Number(it.valor);
+        const valor=Number.isFinite(v)?fmtBRL.format(v):(it.valor||'');
+        const tsbr=formatDateTimeBR(it.ts);
+        html+=`<tr>
+          <td><span class="tag-time ${tipoTag}" title="${tsbr}">${hora}</span></td>
+          <td><div style="font-weight:900">${it.nome||''}</div>${contatos?`<div class="muted">${contatos}</div>`:''}</td>
+          <td>${it.vencimento||''}</td>
+          <td>${endereco}</td>
+          <td class="money">${valor}</td>
+          ${tipoTag==='entrada'?`<td class="actions"><button class="btn danger" data-eid="${it.id}" data-json="${encodeURIComponent(JSON.stringify(it))}" onclick="confirmDelete(this)">Excluir</button></td>`:
+             (tipoTag==='saida'?`<td class="actions"><button class="btn primary" data-rid="${it.recibo_id||''}" onclick="confirmRestore(this)">Restaurar</button></td>`:'')}
+        </tr>`;
+      }
+      html+=`</tbody></table></div>`;
+    }
+        html+=pagerHTML(tipoTag, meta);
+html+=`<div class="footer-cards">
+      <div class="stat"><div class="k">Total ${tipoTag==='entrada'?'Entradas':'Saídas'}</div><div class="v">${fmtBRL.format(total)}</div></div>
+      <div class="stat"><div class="k">Registros</div><div class="v">${count}</div></div>
+    </div>`;
+    el.innerHTML=html;
+  }
+
+  
+  function confirmDelete(btn){
+    const eid = btn.getAttribute('data-eid');
+    if(!eid){ toast('bad','Falha ao excluir','ID do evento não encontrado.'); return; }
+
+    const itJson = btn.getAttribute('data-json');
+    let it=null;
+    try{ it = itJson ? JSON.parse(decodeURIComponent(itJson)) : null; }catch(e){}
+
+    const nome = it?.nome || it?.cliente || '';
+    const venc = it?.vencimento || it?.venc || '';
+    const valor = it?.valor!=null ? fmtBRL.format(Number(it.valor)) : '';
+    const ts = it?.ts ? formatDateTimeBR(it.ts) : (it?.datahora ? formatDateTimeBR(it.datahora) : '');
+
+    openModal(`
+      <div class="modal-head">
+        <div class="modal-title">Confirmar exclusão</div>
+        <button class="icon-btn" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-sub">
+        Você está prestes a <b>excluir esta entrada</b> do histórico.<br/>
+        Isso remove o registro da tabela <b>eventos_recibos</b>.
+      </div>
+      <div class="modal-card">
+        <div style="font-weight:900">${escapeHTML(String(nome||'(sem nome)'))}</div>
+        <div class="muted">Venc.: ${escapeHTML(String(venc||'—'))} • Valor: ${escapeHTML(String(valor||'—'))}</div>
+        <div class="muted">Entrada em: ${escapeHTML(String(ts||'—'))}</div>
+        <div class="muted">Evento ID: ${escapeHTML(String(eid))}</div>
+      </div>
+    `, async ()=>{
+      const r = await fetch('api/excluir_evento.php', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id: eid })
+      });
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || j.ok===false){
+        throw new Error(j.msg || 'Não foi possível excluir.');
+      }
+      toast('good','Entrada excluída', `Removido do histórico. linhas: ${j.deleted ?? j.linhas ?? 1}`);
+      // Atualiza tela
+      if (typeof loadData === 'function') { loadData(); }
+      else if (typeof loadEvents === 'function') { loadEvents(); }
+    }, {confirmText:'Excluir',confirmClass:'danger',loadingText:'Excluindo...',errorTitle:'Falha ao excluir'});
+  }
+
+function confirmRestore(btn){
+    const recibo_id=btn.getAttribute('data-rid');
+    const tr=btn.closest('tr');
+    const nome=tr?.querySelector('td:nth-child(2) div')?.textContent?.trim()||'';
+    const venc=tr?.querySelector('td:nth-child(3)')?.textContent?.trim()||'';
+    const valor=tr?.querySelector('td:nth-child(5)')?.textContent?.trim()||'';
+    const hora=tr?.querySelector('td:nth-child(1) span')?.getAttribute('title')||'';
+    openModal(`
+      Você está prestes a <b>restaurar</b> este recibo para a lista principal.<br/><br/>
+      <div style="background:rgba(8,18,37,.45);border:1px solid rgba(27,43,74,.7);padding:10px 12px;border-radius:14px">
+        <div style="font-weight:900">${nome||'(sem nome)'}</div>
+        <div class="muted">Venc.: ${venc||'—'} • Valor: ${valor||'—'}</div>
+        <div class="muted">Saída em: ${hora||'—'}</div>
+        <div class="muted">ID interno: ${recibo_id}</div>
+      </div><br/>Quer realmente continuar?`, async()=>{
+        await apiPost('api/restaurar.php',{recibo_id}, {confirmText:'Restaurar',confirmClass:'primary',loadingText:'Restaurando...',errorTitle:'Falha ao restaurar'});
+        toast('good','Recibo restaurado','Ele voltou para o sistema principal.');
+        await carregar();
+      }
+    );
+  }
+
+  let lastEntradas=[], lastSaidas=[];
+
+  const pagerState = {
+    entrada: { page: 1, pageSize: 8 },
+    saida:   { page: 1, pageSize: 8 }
+  };
+
+  function resetPager(tipo){
+    if(tipo==='entrada' || tipo==='saida'){
+      pagerState[tipo].page = 1;
+    } else {
+      pagerState.entrada.page = 1;
+      pagerState.saida.page = 1;
+    }
+  }
+
+  function pageSlice(items, tipo){
+    const st = pagerState[tipo] || {page:1,pageSize:8};
+    const totalPages = Math.max(1, Math.ceil(items.length / st.pageSize));
+    st.page = Math.min(Math.max(1, st.page), totalPages);
+    const start = (st.page - 1) * st.pageSize;
+    return {
+      pageItems: items.slice(start, start + st.pageSize),
+      totalPages,
+      page: st.page,
+      pageSize: st.pageSize,
+      total: items.length
+    };
+  }
+
+  function pagerHTML(tipo, meta){
+    const prevDisabled = meta.page <= 1 ? 'disabled' : '';
+    const nextDisabled = meta.page >= meta.totalPages ? 'disabled' : '';
+    return `
+      <div class="pager">
+        <div class="pager-left">
+          <button class="btn ghost pager-prev" data-tipo="${tipo}" ${prevDisabled}>◀</button>
+          <div class="pager-info">Página <b>${meta.page}</b> de <b>${meta.totalPages}</b> • ${meta.total} registro(s)</div>
+          <button class="btn ghost pager-next" data-tipo="${tipo}" ${nextDisabled}>▶</button>
+        </div>
+        <div class="pager-right">
+          <span class="muted">Por página</span>
+          <select class="pager-size" data-tipo="${tipo}">
+            ${[8,12,20,50].map(n=>`<option value="${n}" ${n===meta.pageSize?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+  }
+
+  document.addEventListener('click', (e)=>{
+    const prev = e.target.closest('.pager-prev');
+    const next = e.target.closest('.pager-next');
+    if(prev){
+      const tipo = prev.getAttribute('data-tipo');
+      pagerState[tipo].page -= 1;
+      // re-render without refetch
+      renderPanel(tipo==='entrada'?'entradas':'saidas', tipo==='entrada'?'entradasStatus':'saidasStatus', tipo==='entrada'?lastEntradas:lastSaidas, tipo);
+    }
+    if(next){
+      const tipo = next.getAttribute('data-tipo');
+      pagerState[tipo].page += 1;
+      renderPanel(tipo==='entrada'?'entradas':'saidas', tipo==='entrada'?'entradasStatus':'saidasStatus', tipo==='entrada'?lastEntradas:lastSaidas, tipo);
+    }
+  });
+
+  document.addEventListener('change', (e)=>{
+    const sel = e.target.closest('.pager-size');
+    if(sel){
+      const tipo = sel.getAttribute('data-tipo');
+      pagerState[tipo].pageSize = parseInt(sel.value,10) || 8;
+      pagerState[tipo].page = 1;
+      renderPanel(tipo==='entrada'?'entradas':'saidas', tipo==='entrada'?'entradasStatus':'saidasStatus', tipo==='entrada'?lastEntradas:lastSaidas, tipo);
+    }
+  });
+
+  function csvEscape(s){const v=(s??'').toString();return /[",\n]/.test(v)?`"${v.replaceAll('"','""')}"`:v;}
+  function exportCSV(){
+    const tipo=document.getElementById('tipo').value;
+    const rows=[];
+    rows.push(['tipo','ts','nome','telefone','telefonec','vencimento','endereco','bairro','setor','valor','recibo_id'].map(csvEscape).join(','));
+    const add=(items,label)=>{for(const it of items){rows.push([label,it.ts||'',it.nome||'',it.telefone||'',it.telefonec||'',it.vencimento||'',it.endereco||'',it.bairro||'',it.setor||'',it.valor??'',it.recibo_id||''].map(csvEscape).join(','));}};
+    if(tipo==='entrada') add(lastEntradas,'entrada'); else if(tipo==='saida') add(lastSaidas,'saida'); else {add(lastEntradas,'entrada');add(lastSaidas,'saida');}
+    const blob=new Blob([rows.join('\n')],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');
+    const stamp=new Date().toISOString().slice(0,19).replaceAll(':','-');
+    a.href=URL.createObjectURL(blob);a.download=`historico_${stamp}.csv`;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+    toast('good','CSV exportado','Arquivo gerado com o filtro atual.');
+  }
+
+  function updateSummary(entradas,saidas){
+    const te=sumValor(entradas), ts=sumValor(saidas), saldo=te-ts;
+    document.getElementById('sumEntradas').textContent=fmtBRL.format(te);
+    document.getElementById('sumEntradasQtd').textContent=entradas.length;
+    document.getElementById('sumSaidas').textContent=fmtBRL.format(ts);
+    document.getElementById('sumSaidasQtd').textContent=saidas.length;
+    document.getElementById('sumSaldo').textContent=fmtBRL.format(saldo);
+    document.getElementById('sumDelta').textContent=(entradas.length-saidas.length);
+  }
+
+  async function carregar(){
+    buildFilterBadge();
+    const tipo=document.getElementById('tipo').value;
+    const base='api/listar_eventos.php';
+    document.getElementById('entradas').textContent='Carregando...';
+    document.getElementById('saidas').textContent='Carregando...';
+    document.getElementById('entradasStatus').textContent='—';
+    document.getElementById('saidasStatus').textContent='—';
+    try{
+      if(tipo==='entrada'){
+        const r=await apiGet(`${base}?tipo=entrada`);
+        const filtered=filterItems(r.items||[]);
+        lastEntradas=filtered;lastSaidas=[];
+        renderPanel('entradas','entradasStatus',filtered,'entrada');
+        renderPanel('saidas','saidasStatus',[],'saida');
+        updateSummary(filtered,[]);
+        return;
+      }
+      if(tipo==='saida'){
+        const r=await apiGet(`${base}?tipo=saida`);
+        const filtered=filterItems(r.items||[]);
+        lastSaidas=filtered;lastEntradas=[];
+        renderPanel('saidas','saidasStatus',filtered,'saida');
+        renderPanel('entradas','entradasStatus',[],'entrada');
+        updateSummary([],filtered);
+        return;
+      }
+      const [re,rs]=await Promise.all([apiGet(`${base}?tipo=entrada`),apiGet(`${base}?tipo=saida`)]);
+      const fe=filterItems(re.items||[]);
+      const fs=filterItems(rs.items||[]);
+      lastEntradas=fe;lastSaidas=fs;
+      renderPanel('entradas','entradasStatus',fe,'entrada');
+      renderPanel('saidas','saidasStatus',fs,'saida');
+      updateSummary(fe,fs);
+    }catch(e){
+      toast('bad','Erro ao carregar histórico',e.message||String(e));
+      document.getElementById('entradas').innerHTML='<div class="empty">Falha ao carregar.</div>';
+      document.getElementById('saidas').innerHTML='<div class="empty">Falha ao carregar.</div>';
+      updateSummary([],[]);
+    }
+  }
+  function limpar(){
+    document.getElementById('tipo').value='';
+    document.getElementById('data').value='';
+    document.getElementById('busca').value='';
+    quickDays=null;setActiveChip('all');carregar();
+  }
+  document.addEventListener('keydown',(e)=>{
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('busca').focus();}
+    if(e.key==='Escape'){if(document.getElementById('backdrop').style.display==='flex') closeModal();}
+  });
+  let tmr=null;
+  document.getElementById('busca').addEventListener('input',()=>{
+    clearTimeout(tmr);
+    tmr=setTimeout(()=>carregar(),260);
+  });
+  setActiveChip('all');
+  carregar();
+</script>
+
+<script>
+function renderAcao(ev){
+  const tipo = String(ev.tipo || '').toLowerCase();
+  if (tipo === 'entrada') {
+    return `<button class="btn-acao btn-excluir"
+      data-eid="${ev.id}"
+      data-json="${encodeURIComponent(JSON.stringify(ev))}">Excluir</button>`;
+  }
+  if (tipo === 'saida' || tipo === 'saída') {
+    return `<button class="btn-acao btn-restaurar"
+      data-rid="${ev.recibo_id ?? ev.rid ?? ''}"
+      data-eid="${ev.id}">Restaurar</button>`;
+  }
+  return '';
+}
+
+document.addEventListener('click', async (e)=>{
+  const btnR = e.target.closest('.btn-restaurar');
+  if (btnR){
+    const rid = btnR.dataset.rid;
+    if (!rid) return alert('Recibo não identificado para restaurar.');
+    if (!confirm('Deseja restaurar este recibo?')) return;
+    const r = await fetch('api/restaurar.php', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id: rid })
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || j.ok === false) return alert(j.msg || 'Falha ao restaurar.');
+    if (typeof loadEvents === 'function') loadEvents();
+  }
+});
+</script>
+
+</body>
+</html>

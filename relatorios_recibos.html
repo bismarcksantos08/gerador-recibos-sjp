@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="pt-br" data-theme="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Relatórios — Recibos (Filtros por Bairro/Setor)</title>
+  <style>
+    :root{
+      --bg:#081225;--card:#0c1a33;--border:#1b2b4a;--text:#e9f1ff;--muted:#9ab0d1;
+      --primary:#3b82f6;--ok:#10b981;--danger:#ef4444;--warn:#f59e0b;
+      --shadow:0 12px 40px rgba(0,0,0,.35);--radius:16px;
+      --grid:rgba(27,43,74,.35);
+      --inputbg:rgba(255,255,255,.03);
+      --tableHead:rgba(9,18,37,.9);
+      --rowHover:rgba(59,130,246,.06);
+      --optionBg:#ffffff;
+      --optionText:#0b1a33;
+      --focus:rgba(59,130,246,.55);
+    }
+
+    /* 🌤️ Tema claro */
+    html[data-theme="light"]{
+      --bg:#f5f7ff;
+      --card:#ffffff;
+      --border:#d8e2ff;
+      --text:#0b1a33;
+      --muted:#51607a;
+      --shadow:0 12px 40px rgba(11,26,51,.12);
+      --grid:rgba(11,26,51,.10);
+      --inputbg:rgba(11,26,51,.04);
+      --tableHead:rgba(245,247,255,.92);
+      --rowHover:rgba(59,130,246,.08);
+      --optionBg:#ffffff;
+      --optionText:#0b1a33;
+      --focus:rgba(59,130,246,.35);
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:
+        radial-gradient(1100px 520px at 18% 10%, rgba(59,130,246,.16), transparent 60%),
+        radial-gradient(900px 520px at 78% 12%, rgba(16,185,129,.10), transparent 55%),
+        var(--bg);
+      color:var(--text);padding:20px
+    }
+    h1{margin:0 0 8px;font-size:34px;letter-spacing:.2px}
+    .sub{color:var(--muted);margin-bottom:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    .toolbar{
+      display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:14px 0 16px;
+      padding:14px;border:1px solid var(--border);border-radius:var(--radius);
+      background:linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 78%, transparent));
+      box-shadow:var(--shadow);backdrop-filter:blur(8px)
+    }
+    label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+    input,select,button{
+      border-radius:12px;border:1px solid var(--border);background:var(--inputbg);
+      color:var(--text);padding:10px 12px;outline:none;font-size:14px
+    }
+    input[type="date"]{padding:9px 12px}
+    input:focus,select:focus,button:focus{box-shadow:0 0 0 3px var(--focus)}
+    button{
+      cursor:pointer;background:color-mix(in srgb, var(--primary) 18%, transparent);
+      border-color:color-mix(in srgb, var(--primary) 35%, transparent)
+    }
+    button:hover{background:color-mix(in srgb, var(--primary) 24%, transparent)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .btn-ghost{
+      background:color-mix(in srgb, var(--text) 6%, transparent);
+      border-color:color-mix(in srgb, var(--text) 16%, transparent);
+    }
+    .btn-ghost:hover{
+      background:color-mix(in srgb, var(--text) 10%, transparent);
+    }
+    .spacer{flex:1 1 auto}
+    .grid{
+      display:grid;grid-template-columns:repeat(auto-fit, minmax(200px,1fr));gap:12px;margin-bottom:14px
+    }
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius);
+      background:linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, transparent), color-mix(in srgb, var(--card) 78%, transparent));
+      box-shadow:var(--shadow);backdrop-filter:blur(8px);padding:14px
+    }
+    .kpi-title{color:var(--muted);font-size:12px}
+    .kpi-value{font-size:24px;margin-top:6px;font-weight:700}
+    .kpi-small{color:var(--muted);font-size:12px;margin-top:6px}
+    .kpi-ok{color:color-mix(in srgb, var(--ok) 75%, var(--text))}
+    .kpi-primary{color:color-mix(in srgb, var(--primary) 65%, var(--text))}
+    .kpi-warn{color:color-mix(in srgb, var(--warn) 80%, var(--text))}
+
+    .charts{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+    .charts .card{padding:14px}
+    .chart-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .chart-title h2{margin:0;font-size:16px}
+    .muted{color:var(--muted);font-size:12px}
+
+    /* Limita o tamanho do gráfico de pizza */
+    .pizza-wrap{max-width:520px;height:360px;margin:0 auto;}
+    .pizza-wrap canvas{width:100% !important;height:100% !important;}
+
+    .table-wrap{overflow:auto;border-radius:14px;border:1px solid color-mix(in srgb, var(--border) 55%, transparent)}
+    table{width:100%;border-collapse:collapse;min-width:980px;background:color-mix(in srgb, var(--text) 2%, transparent)}
+    th,td{padding:10px 12px;border-bottom:1px solid color-mix(in srgb, var(--border) 55%, transparent);font-size:13px}
+    th{color:color-mix(in srgb, var(--text) 92%, transparent);text-align:left;position:sticky;top:0;background:var(--tableHead);backdrop-filter:blur(8px)}
+    td{color:var(--text)}
+    tr:hover td{background:var(--rowHover)}
+
+    /* 🔧 Fix dropdown: garante legibilidade dos bairros/setores no menu */
+    select option{
+      background:var(--optionBg);
+      color:var(--optionText);
+    }
+
+    .pagination{
+      display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+      margin-top:12px;padding-top:10px;border-top:1px solid color-mix(in srgb, var(--border) 55%, transparent)
+    }
+    .page-left{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .page-right{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .page-btn{
+      padding:9px 12px;border-radius:12px;border:1px solid var(--border);
+      background:color-mix(in srgb, var(--text) 6%, transparent);
+      color:var(--text);cursor:pointer
+    }
+    .page-btn:hover{background:color-mix(in srgb, var(--text) 10%, transparent)}
+    .page-btn:disabled{opacity:.55;cursor:not-allowed}
+    .page-pill{
+      padding:8px 12px;border-radius:999px;border:1px solid color-mix(in srgb, var(--border) 75%, transparent);
+      background:color-mix(in srgb, var(--text) 4%, transparent);
+      color:var(--muted);font-size:12px
+    }
+
+    .toast{
+      position:fixed;top:16px;right:16px;z-index:9999;
+      padding:12px 14px;border-radius:12px;border:1px solid color-mix(in srgb, var(--text) 12%, transparent);
+      background:color-mix(in srgb, var(--card) 92%, transparent);color:var(--text);
+      box-shadow:var(--shadow);display:none;max-width:520px
+    }
+    .toast.show{display:block}
+    .toast .small{color:color-mix(in srgb, var(--text) 70%, transparent);font-size:12px;margin-top:4px}
+
+    @media (max-width: 980px){
+      .grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .charts{grid-template-columns:1fr}
+      table{min-width:900px}
+    }
+    @media (max-width: 520px){
+      .grid{grid-template-columns:1fr}
+      table{min-width:860px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Relatórios — Recibos</h1>
+  <div class="sub">
+    Resumo e gráficos dos <b>recibos</b> com filtros por <b>bairro</b> e <b>setor</b>. Fonte: <code>api/listar.php</code>
+  </div>
+
+  <div class="toolbar">
+    <div>
+      <label>Vencimento (início)</label>
+      <input id="dtIni" type="date">
+    </div>
+    <div>
+      <label>Vencimento (fim)</label>
+      <input id="dtFim" type="date">
+    </div>
+
+    <div>
+      <label>Bairro</label>
+      <select id="bairro">
+        <option value="" selected>Todos</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Setor</label>
+      <select id="setor">
+        <option value="" selected>Todos</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Buscar</label>
+      <input id="q" type="text" placeholder="Nome, telefone, endereço…">
+    </div>
+
+    <div class="spacer"></div>
+
+    <button id="btnTema" class="btn-ghost" title="Alternar tema">🌙 Escuro</button>
+    <button id="btnAtualizar">Atualizar</button>
+    <button id="btnLimpar" title="Limpa filtros e recarrega">Limpar</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="kpi-title">Recibos (filtrados)</div>
+      <div id="kpiQtd" class="kpi-value kpi-primary">0</div>
+      <div id="kpiQtd2" class="kpi-small">—</div>
+    </div>
+    <div class="card">
+      <div class="kpi-title">Total (valores)</div>
+      <div id="kpiTotal" class="kpi-value kpi-ok">R$ 0,00</div>
+      <div id="kpiTotal2" class="kpi-small">—</div>
+    </div>
+    <div class="card">
+      <div class="kpi-title">Média por recibo</div>
+      <div id="kpiMedia" class="kpi-value kpi-warn">R$ 0,00</div>
+      <div id="kpiMedia2" class="kpi-small">—</div>
+    </div>
+
+    <div class="card">
+      <div class="kpi-title">Vencidos (até ontem)</div>
+      <div id="kpiVencidos" class="kpi-value kpi-primary">R$ 0,00</div>
+      <div id="kpiVencidos2" class="kpi-small">0 recibo(s)</div>
+    </div>
+
+    <div class="card">
+      <div class="kpi-title">A vencer (hoje ou depois)</div>
+      <div id="kpiAvencer" class="kpi-value kpi-ok">R$ 0,00</div>
+      <div id="kpiAvencer2" class="kpi-small">0 recibo(s)</div>
+    </div>
+
+    <div class="card">
+      <div class="kpi-title">Período (venc.)</div>
+      <div id="kpiPeriodo" class="kpi-value kpi-warn">—</div>
+      <div id="kpiPeriodo2" class="kpi-small">Carregando…</div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="card">
+      <div class="chart-title">
+        <h2>Total por dia de vencimento (linha)</h2>
+        <div class="muted" id="lblLinha">—</div>
+      </div>
+      <canvas id="chartLinha" height="120"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="chart-title">
+        <h2>Total por setor (barras)</h2>
+        <div class="muted" id="lblBarra">Top 12</div>
+      </div>
+      <canvas id="chartBarra" height="140"></canvas>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1">
+      <div class="chart-title">
+        <h2>Total por bairro (pizza)</h2>
+        <div class="muted" id="lblPizza">Top 12</div>
+      </div>
+      <div class="pizza-wrap"><canvas id="chartPizza"></canvas></div>
+      <div class="muted" style="margin-top:8px">Obs.: bairro/setor vazios entram como “(sem bairro)” / “(sem setor)”.</div>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1">
+      <div class="chart-title">
+        <h2>Lista de recibos (filtrados)</h2>
+        <div class="muted" id="lblTabela">—</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Endereço</th>
+              <th>Bairro</th>
+              <th>Setor</th>
+              <th>Vencimento</th>
+              <th>Valor</th>
+              <th>Telefone</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <div class="page-left">
+          <button class="page-btn" id="prev">◀ Anterior</button>
+          <button class="page-btn" id="next">Próxima ▶</button>
+          <span class="page-pill" id="pageInfo">—</span>
+        </div>
+        <div class="page-right">
+          <label style="margin:0;color:var(--muted);font-size:12px">Por página</label>
+          <select id="pageSize">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="200">200</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-top:10px">
+        Dica: se “Setor” não existir no seu banco, o filtro continuará funcionando (vai aparecer “(sem setor)”).
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const $ = (s)=>document.querySelector(s);
+  const toast = $("#toast");
+
+  function showToast(msg, small=""){
+    toast.innerHTML = `<div>${msg}</div>${small?`<div class="small">${small}</div>`:""}`;
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"), 4200);
+  }
+
+  function parseBRL(v){
+    if (typeof v === "number") return v;
+    if (v === null || v === undefined) return 0;
+    const s = String(v).trim();
+    const n1 = Number(s.replace(/[^\d.-]/g,''));
+    if (!Number.isNaN(n1) && s.includes(".")) return n1;
+    const cleaned = s.replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+    const n2 = Number(cleaned);
+    return Number.isFinite(n2) ? n2 : 0;
+  }
+  function formatBRL(n){
+    return (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+  }
+
+  function toDateOnly(s){
+    if (!s) return "";
+    const t = String(s);
+    const m = t.match(/\d{4}-\d{2}-\d{2}/);
+    return m ? m[0] : "";
+  }
+  function inRange(d, ini, fim){
+    if (!d) return false;
+    if (ini && d < ini) return false;
+    if (fim && d > fim) return false;
+    return true;
+  }
+  function normText(x){ return (x==null?"":String(x)).trim().toLowerCase(); }
+  function safeField(obj, keys, fallback=""){
+    for (const k of keys){
+      if (obj && obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
+    }
+    return fallback;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // 🎨 Tema
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("rel_recibos_theme", theme);
+    const isLight = theme === "light";
+    $("#btnTema").textContent = isLight ? "🌞 Claro" : "🌙 Escuro";
+    // re-render charts with correct colors
+    if (lastFiltered) renderCharts(lastFiltered);
+  }
+  function initTheme(){
+    const saved = localStorage.getItem("rel_recibos_theme");
+    applyTheme(saved === "light" ? "light" : "dark");
+  }
+
+  // 🎛️ Paginação
+  let page = 1;
+  let pageSize = 50;
+  let lastFiltered = null;
+
+  function setPage(newPage){
+    page = Math.max(1, newPage);
+    renderTable(lastFiltered || []);
+  }
+
+  function getThemeColors(){
+    const cs = getComputedStyle(document.documentElement);
+    return {
+      text: cs.getPropertyValue("--text").trim() || "#e9f1ff",
+      muted: cs.getPropertyValue("--muted").trim() || "#9ab0d1",
+      grid: cs.getPropertyValue("--grid").trim() || "rgba(27,43,74,.35)"
+    };
+  }
+
+  function toggleSelectFilter(selectId, value){
+    const sel = $("#"+selectId);
+    const cur = sel.value || "";
+    if (value === "__CLEAR__" || (cur && cur === value)) {
+      sel.value = "";
+    } else {
+      sel.value = value;
+    }
+  }
+
+  let chartLinha=null, chartBarra=null, chartPizza=null;
+  function destroyCharts(){
+    [chartLinha, chartBarra, chartPizza].forEach(c=>{ try{ c && c.destroy(); }catch(e){} });
+    chartLinha=chartBarra=chartPizza=null;
+  }
+
+  async function fetchRecibos(){
+    const r = await fetch("api/listar.php", { cache:"no-store" });
+    const j = await r.json();
+    if (!r.ok) throw new Error("Erro HTTP ao buscar recibos.");
+    if (!Array.isArray(j)) {
+      if (j && Array.isArray(j.items)) return j.items;
+      throw new Error("Resposta inválida de listar.php (não é array).");
+    }
+    return j;
+  }
+
+  function buildOptions(items){
+    const bairros = new Set();
+    const setores = new Set();
+    for (const it of items){
+      const b = (safeField(it, ["bairro","Bairro"], "") || "").toString().trim() || "(sem bairro)";
+      const s = (safeField(it, ["setor","Setor","setor_nome","setorName"], "") || "").toString().trim() || "(sem setor)";
+      bairros.add(b);
+      setores.add(s);
+    }
+    const bairroSel = $("#bairro");
+    const setorSel  = $("#setor");
+    const curB = bairroSel.value, curS = setorSel.value;
+
+    bairroSel.innerHTML = `<option value="">Todos</option>` + [...bairros].sort().map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+    setorSel.innerHTML  = `<option value="">Todos</option>` + [...setores].sort().map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+
+    if ([...bairros].includes(curB)) bairroSel.value = curB;
+    if ([...setores].includes(curS)) setorSel.value = curS;
+  }
+
+  function applyFilters(items){
+    const ini = $("#dtIni").value || "";
+    const fim = $("#dtFim").value || "";
+    const bairro = $("#bairro").value || "";
+    const setor  = $("#setor").value || "";
+    const q = normText($("#q").value || "");
+
+    return items.filter(it=>{
+      const venc = toDateOnly(safeField(it, ["vencimento","dt_vencimento","data_vencimento","vcto","venc"], ""));
+      if (ini || fim){
+        if (!inRange(venc, ini, fim)) return false;
+      }
+
+      const b = (safeField(it, ["bairro","Bairro"], "") || "").toString().trim() || "(sem bairro)";
+      const s = (safeField(it, ["setor","Setor","setor_nome","setorName"], "") || "").toString().trim() || "(sem setor)";
+      if (bairro && b !== bairro) return false;
+      if (setor && s !== setor) return false;
+
+      if (q){
+        const blob = [
+          safeField(it, ["nome","Nome"], ""),
+          safeField(it, ["telefone","fone","celular"], ""),
+          safeField(it, ["endereco","endereço","rua"], ""),
+          b, s,
+          safeField(it, ["id","recibo_id"], "")
+        ].map(x=>String(x||"")).join(" ").toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+
+      return true;
+    });
+  }
+
+  function aggregateByDay(items){
+    const m = new Map();
+    for (const it of items){
+      const d = toDateOnly(safeField(it, ["vencimento","dt_vencimento","data_vencimento","vcto","venc"], ""));
+      if (!d) continue;
+      const v = parseBRL(safeField(it, ["valor","Valor","total","valor_total"], 0));
+      m.set(d, (m.get(d)||0) + v);
+    }
+    const days = [...m.keys()].sort();
+    return {days, totals: days.map(d=>m.get(d))};
+  }
+
+  function aggregateTop(items, fieldKeys, labelEmpty, topN=12){
+    const m = new Map();
+    for (const it of items){
+      const key = (safeField(it, fieldKeys, "") || "").toString().trim() || labelEmpty;
+      const v = parseBRL(safeField(it, ["valor","Valor","total","valor_total"], 0));
+      m.set(key, (m.get(key)||0) + v);
+    }
+    const arr = [...m.entries()].sort((a,b)=>b[1]-a[1]);
+    const top = arr.slice(0, topN);
+    const outros = arr.slice(topN).reduce((s,x)=>s + x[1], 0);
+    if (outros > 0) top.push(["Outros", outros]);
+    return {labels: top.map(x=>x[0]), values: top.map(x=>x[1])};
+  }
+
+  function setKPIs(filtered, ini, fim){
+    const total = filtered.reduce((s,it)=> s + parseBRL(safeField(it, ["valor","Valor","total","valor_total"], 0)), 0);
+    const qtd = filtered.length;
+    const media = qtd ? (total/qtd) : 0;
+
+    // 📅 Vencimento: vencidos x a vencer (com base no "hoje" local)
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth()+1).padStart(2,"0");
+    const dd = String(today.getDate()).padStart(2,"0");
+    const hoje = `${yyyy}-${mm}-${dd}`;
+
+    let qtdVenc=0, qtdAv=0, totalVenc=0, totalAv=0;
+    for (const it of filtered){
+      const venc = toDateOnly(safeField(it, ["vencimento","dt_vencimento","data_vencimento","vcto","venc"], ""));
+      const v = parseBRL(safeField(it, ["valor","Valor","total","valor_total"], 0));
+      if (!venc) continue;
+      if (venc < hoje){
+        qtdVenc++; totalVenc += v;
+      } else {
+        qtdAv++; totalAv += v;
+      }
+    }
+
+    $("#kpiQtd").textContent = String(qtd);
+    $("#kpiQtd2").textContent = `Base filtrada`;
+
+    $("#kpiTotal").textContent = formatBRL(total);
+    $("#kpiTotal2").textContent = `Somatório de valores`;
+
+    $("#kpiMedia").textContent = formatBRL(media);
+    $("#kpiMedia2").textContent = `Média por recibo`;
+
+    $("#kpiVencidos").textContent = formatBRL(totalVenc);
+    $("#kpiVencidos2").textContent = `${qtdVenc} recibo(s)`;
+
+    $("#kpiAvencer").textContent = formatBRL(totalAv);
+    $("#kpiAvencer2").textContent = `${qtdAv} recibo(s)`;
+
+    const pIni = ini || "início";
+    const pFim = fim || "hoje";
+    $("#kpiPeriodo").textContent = `${pIni} → ${pFim}`;
+    $("#kpiPeriodo2").textContent = `${qtd} recibo(s) no filtro`;
+  }
+
+  function renderTable(items){
+    const tb = $("#tbody");
+    const total = items.length;
+
+    pageSize = parseInt($("#pageSize").value || "50", 10);
+    if (!Number.isFinite(pageSize) || pageSize <= 0) pageSize = 50;
+
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > totalPages) page = totalPages;
+
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const view = items.slice(start, end);
+
+    tb.innerHTML = view.map(it=>{
+      const nome = safeField(it, ["nome","Nome"], "");
+      const ender = safeField(it, ["endereco","endereço","rua"], "");
+      const bairro = (safeField(it, ["bairro","Bairro"], "") || "").toString().trim() || "(sem bairro)";
+      const setor = (safeField(it, ["setor","Setor","setor_nome","setorName"], "") || "").toString().trim() || "(sem setor)";
+      const venc = toDateOnly(safeField(it, ["vencimento","dt_vencimento","data_vencimento","vcto","venc"], ""));
+      const valor = parseBRL(safeField(it, ["valor","Valor","total","valor_total"], 0));
+      const tel = safeField(it, ["telefone","fone","celular"], "");
+
+      return `<tr>
+        <td>${escapeHtml(nome)}</td>
+        <td>${escapeHtml(ender)}</td>
+        <td>${escapeHtml(bairro)}</td>
+        <td>${escapeHtml(setor)}</td>
+        <td>${escapeHtml(venc || "-")}</td>
+        <td>${escapeHtml(formatBRL(valor))}</td>
+        <td>${escapeHtml(tel)}</td>
+      </tr>`;
+    }).join("");
+
+    $("#lblTabela").textContent = `${total} item(ns) — exibindo ${view.length} (página ${page}/${totalPages})`;
+    $("#pageInfo").textContent = `Página ${page} de ${totalPages} — ${total} registro(s)`;
+
+    $("#prev").disabled = page <= 1;
+    $("#next").disabled = page >= totalPages;
+  }
+
+  function renderCharts(filtered){
+    destroyCharts();
+    const C = getThemeColors();
+
+    const line = aggregateByDay(filtered);
+    $("#lblLinha").textContent = `${line.days.length} dia(s)`;
+    chartLinha = new Chart($("#chartLinha"), {
+      type: 'line',
+      data: {
+        labels: line.days,
+        datasets: [{ label: 'Total (vencimento)', data: line.totals, tension: 0.25 }]
+      },
+      options: {
+        responsive: true,
+        onClick: (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const dia = line.days[idx];
+          if (!dia) return;
+
+          const curIni = $("#dtIni").value || "";
+          const curFim = $("#dtFim").value || "";
+
+          // toggle: se já está filtrado nesse dia, limpa; senão filtra só esse dia
+          if (curIni === dia && curFim === dia){
+            $("#dtIni").value = "";
+            $("#dtFim").value = "";
+            showToast("Filtro removido.", "Data de vencimento: (todas)");
+          } else {
+            $("#dtIni").value = dia;
+            $("#dtFim").value = dia;
+            showToast("Filtro aplicado pelo gráfico.", `Vencimento: ${dia}`);
+          }
+
+          if (cacheAll) refresh();
+        },
+        plugins: {
+          legend: { labels: { color: C.text } },
+          tooltip: { callbacks: { label: (c)=> `Total: ${formatBRL(c.parsed.y)}` } }
+        },
+        scales: {
+          x: { ticks: { color: C.muted }, grid: { color: C.grid } },
+          y: { ticks: { color: C.muted, callback: (v)=> formatBRL(v) }, grid: { color: C.grid } }
+        }
+      }
+    });
+const bar = aggregateTop(filtered, ["setor","Setor","setor_nome","setorName"], "(sem setor)", 12);
+    $("#lblBarra").textContent = `Top ${Math.min(12, bar.labels.length)}${bar.labels.includes("Outros") ? " + Outros" : ""}`;
+    chartBarra = new Chart($("#chartBarra"), {
+      type: 'bar',
+      data: {
+        labels: bar.labels,
+        datasets: [{ label: 'Total por setor', data: bar.values }]
+      },
+      options: {
+        responsive: true,
+        onClick: (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const lab = bar.labels[idx];
+          if (!lab) return;
+          if (lab === "Outros") return; // evita filtro genérico
+          toggleSelectFilter("setor", lab);
+          showToast("Filtro aplicado pelo gráfico.", `Setor: ${lab}`);
+          if (cacheAll) refresh();
+        },
+        onClick: (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const dia = line.days[idx];
+          if (!dia) return;
+          // toggle: se já está no mesmo dia, limpa
+          const curIni = $("#dtIni").value || "";
+          const curFim = $("#dtFim").value || "";
+          if (curIni === dia && curFim === dia){
+            $("#dtIni").value = "";
+            $("#dtFim").value = "";
+            showToast("Filtro por dia removido.", "Linha: vencimento");
+          } else {
+            $("#dtIni").value = dia;
+            $("#dtFim").value = dia;
+            showToast("Filtro aplicado pelo gráfico.", `Vencimento: ${dia}`);
+          }
+          if (cacheAll) refresh();
+        },
+        plugins: {
+          legend: { labels: { color: C.text } },
+          tooltip: { callbacks: { label: (c)=> `${formatBRL(c.parsed.y)}` } }
+        },
+        scales: {
+          x: { ticks: { color: C.muted }, grid: { color: C.grid } },
+          y: { ticks: { color: C.muted, callback: (v)=> formatBRL(v) }, grid: { color: C.grid } }
+        }
+      }
+    });
+
+    const pie = aggregateTop(filtered, ["bairro","Bairro"], "(sem bairro)", 12);
+    $("#lblPizza").textContent = `Top ${Math.min(12, pie.labels.length)}${pie.labels.includes("Outros") ? " + Outros" : ""}`;
+    chartPizza = new Chart($("#chartPizza"), {
+      type: 'doughnut',
+      data: { labels: pie.labels, datasets: [{ label: 'Total por bairro', data: pie.values }] },
+      options: {
+        responsive: true,
+        onClick: (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const lab = pie.labels[idx];
+          if (!lab) return;
+          if (lab === "Outros") return;
+          toggleSelectFilter("bairro", lab);
+          showToast("Filtro aplicado pelo gráfico.", `Bairro: ${lab}`);
+          if (cacheAll) refresh();
+        },
+        onClick: (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const dia = line.days[idx];
+          if (!dia) return;
+          // toggle: se já está no mesmo dia, limpa
+          const curIni = $("#dtIni").value || "";
+          const curFim = $("#dtFim").value || "";
+          if (curIni === dia && curFim === dia){
+            $("#dtIni").value = "";
+            $("#dtFim").value = "";
+            showToast("Filtro por dia removido.", "Linha: vencimento");
+          } else {
+            $("#dtIni").value = dia;
+            $("#dtFim").value = dia;
+            showToast("Filtro aplicado pelo gráfico.", `Vencimento: ${dia}`);
+          }
+          if (cacheAll) refresh();
+        },
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: C.text } },
+          tooltip: { callbacks: { label: (c)=> `${c.label}: ${formatBRL(c.parsed)}` } }
+        }
+      }
+    });
+  }
+
+  let cacheAll = null;
+
+  async function refresh(opts={forceFetch:false}){
+    const btn = $("#btnAtualizar");
+    btn.disabled = true;
+    btn.textContent = "Atualizando…";
+
+    try{
+      if (!cacheAll || opts.forceFetch){
+        cacheAll = await fetchRecibos();
+        buildOptions(cacheAll);
+      }
+
+      const ini = $("#dtIni").value || "";
+      const fim = $("#dtFim").value || "";
+      const filtered = applyFilters(cacheAll);
+      lastFiltered = filtered;
+
+      // reset página quando muda filtro
+      page = 1;
+
+      setKPIs(filtered, ini, fim);
+      renderCharts(filtered);
+      renderTable(filtered);
+
+      showToast("Relatórios de recibos atualizados.", `Total na API: ${cacheAll.length} — no filtro: ${filtered.length}`);
+    }catch(err){
+      console.error(err);
+      showToast("Erro ao gerar relatórios de recibos.", String(err.message || err));
+      $("#kpiPeriodo2").textContent = "Erro ao carregar dados.";
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Atualizar";
+    }
+  }
+
+  // Eventos
+  $("#btnAtualizar").addEventListener("click", ()=> refresh({forceFetch:true}));
+  $("#btnLimpar").addEventListener("click", ()=>{
+    $("#dtIni").value = "";
+    $("#dtFim").value = "";
+    $("#bairro").value = "";
+    $("#setor").value = "";
+    $("#q").value = "";
+    cacheAll = null;
+    lastFiltered = null;
+    page = 1;
+    refresh({forceFetch:true});
+  });
+
+  $("#btnTema").addEventListener("click", ()=>{
+    const cur = document.documentElement.getAttribute("data-theme") || "dark";
+    applyTheme(cur === "dark" ? "light" : "dark");
+  });
+
+  // paginação
+  $("#prev").addEventListener("click", ()=>{ setPage(page - 1); });
+  $("#next").addEventListener("click", ()=>{ setPage(page + 1); });
+  $("#pageSize").addEventListener("change", ()=>{ page = 1; renderTable(lastFiltered || []); });
+
+  // recalcula sem novo fetch quando mexer em filtros
+  ["dtIni","dtFim","bairro","setor","q"].forEach(id=>{
+    $("#"+id).addEventListener("input", ()=>{ if (cacheAll) refresh(); });
+    $("#"+id).addEventListener("change", ()=>{ if (cacheAll) refresh(); });
+  });
+
+  initTheme();
+  refresh();
+</script>
+</body>
+</html>

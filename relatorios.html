@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Relatórios — Entradas & Saídas (por dia)</title>
+  <style>
+    :root{
+      --bg:#081225;--card:#0c1a33;--border:#1b2b4a;--text:#e9f1ff;--muted:#9ab0d1;
+      --primary:#3b82f6;--ok:#10b981;--danger:#ef4444;--warn:#f59e0b;
+      --shadow:0 12px 40px rgba(0,0,0,.35);--radius:16px
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+      background:radial-gradient(1100px 520px at 18% 10%, rgba(59,130,246,.16), transparent 60%),
+                 radial-gradient(900px 520px at 78% 12%, rgba(16,185,129,.10), transparent 55%),
+                 var(--bg);
+      color:var(--text);padding:20px
+    }
+    h1{margin:0 0 8px;font-size:34px;letter-spacing:.2px}
+    .sub{color:var(--muted);margin-bottom:16px}
+    .wrap{max-width:1200px;margin:0 auto}
+    .toolbar{
+      display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:14px 0 16px;
+      padding:14px;border:1px solid var(--border);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(12,26,51,.92), rgba(12,26,51,.78));
+      box-shadow:var(--shadow);backdrop-filter:blur(8px)
+    }
+    label{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
+    input,select,button{
+      border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,.03);
+      color:var(--text);padding:10px 12px;outline:none;font-size:14px
+    }
+    input[type="date"]{padding:9px 12px}
+    button{
+      cursor:pointer;background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.35)
+    }
+    button:hover{background:rgba(59,130,246,.22)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .spacer{flex:1 1 auto}
+    .grid{
+      display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:12px;margin-bottom:14px
+    }
+    .card{
+      border:1px solid var(--border);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(12,26,51,.92), rgba(12,26,51,.78));
+      box-shadow:var(--shadow);backdrop-filter:blur(8px);padding:14px
+    }
+    .kpi-title{color:var(--muted);font-size:12px}
+    .kpi-value{font-size:24px;margin-top:6px;font-weight:700}
+    .kpi-small{color:var(--muted);font-size:12px;margin-top:6px}
+    .kpi-ok{color:#a7f3d0}
+    .kpi-danger{color:#fecaca}
+    .kpi-primary{color:#bfdbfe}
+    .kpi-warn{color:#fde68a}
+    .charts{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+    .charts .card{padding:14px}
+    .chart-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .chart-title h2{margin:0;font-size:16px}
+    .muted{color:var(--muted);font-size:12px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    .grow{flex:1 1 auto}
+    .toast{
+      position:fixed;top:16px;right:16px;z-index:9999;
+      padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);
+      background:#0b1a33;color:#fff;box-shadow:var(--shadow);display:none;max-width:520px
+    }
+    .toast.show{display:block}
+    .toast .small{color:rgba(255,255,255,.75);font-size:12px;margin-top:4px}
+    @media (max-width: 980px){
+      .grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+      .charts{grid-template-columns:1fr}
+    }
+    @media (max-width: 520px){
+      .grid{grid-template-columns:1fr}
+    }
+  
+    /* Limita o tamanho do gráfico de pizza (evita ficar gigante) */
+    .pizza-wrap{
+      max-width: 520px;
+      height: 360px;
+      margin: 0 auto;
+    }
+    .pizza-wrap canvas{
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Relatórios</h1>
+  <div class="sub">Gráficos e resumo financeiro por <b>dia</b> (Entradas × Saídas). Fonte: <code>api/listar_eventos.php</code></div>
+
+  <div class="toolbar">
+    <div>
+      <label>Data inicial</label>
+      <input id="dtIni" type="date">
+    </div>
+    <div>
+      <label>Data final</label>
+      <input id="dtFim" type="date">
+    </div>
+    <div>
+      <label>Limite de registros (API)</label>
+      <select id="limit">
+        <option value="2000">2000</option>
+        <option value="5000" selected>5000</option>
+      </select>
+    </div>
+    <div>
+      <label>Somente</label>
+      <select id="tipoView">
+        <option value="ambos" selected>Entradas e Saídas</option>
+        <option value="entrada">Somente Entradas</option>
+        <option value="saida">Somente Saídas</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <button id="btnAtualizar">Atualizar</button>
+    <button id="btnLimpar" title="Limpa filtros e recarrega">Limpar</button>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="kpi-title">Total de Entradas</div>
+      <div id="kpiEntradas" class="kpi-value kpi-ok">R$ 0,00</div>
+      <div id="kpiEntradas2" class="kpi-small">0 registros</div>
+    </div>
+    <div class="card">
+      <div class="kpi-title">Total de Saídas</div>
+      <div id="kpiSaidas" class="kpi-value kpi-danger">R$ 0,00</div>
+      <div id="kpiSaidas2" class="kpi-small">0 registros</div>
+    </div>
+    <div class="card">
+      <div class="kpi-title">Saldo (Entradas − Saídas)</div>
+      <div id="kpiSaldo" class="kpi-value kpi-primary">R$ 0,00</div>
+      <div id="kpiSaldo2" class="kpi-small">—</div>
+    </div>
+    <div class="card">
+      <div class="kpi-title">Período analisado</div>
+      <div id="kpiPeriodo" class="kpi-value kpi-warn">—</div>
+      <div id="kpiPeriodo2" class="kpi-small">Carregando…</div>
+    </div>
+  </div>
+
+  <div class="charts">
+    <div class="card">
+      <div class="chart-title">
+        <h2>Evolução diária (linha)</h2>
+        <div class="muted" id="lblLinha">—</div>
+      </div>
+      <canvas id="chartLinha" height="120"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="chart-title">
+        <h2>Entradas × Saídas (barras)</h2>
+        <div class="muted" id="lblBarra">—</div>
+      </div>
+      <canvas id="chartBarra" height="140"></canvas>
+    </div>
+
+    <div class="card" style="grid-column:1 / -1">
+      <div class="chart-title">
+        <h2>Entradas por bairro (pizza)</h2>
+        <div class="muted" id="lblPizza">Top 12</div>
+      </div>
+      <div class="pizza-wrap"><canvas id="chartPizza"></canvas></div>
+      <div class="muted" style="margin-top:8px">Obs.: bairros vazios entram como “(sem bairro)”.</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const $ = (s)=>document.querySelector(s);
+  const toast = $("#toast");
+
+  function showToast(msg, small=""){
+    toast.innerHTML = `<div>${msg}</div>${small?`<div class="small">${small}</div>`:""}`;
+    toast.classList.add("show");
+    setTimeout(()=>toast.classList.remove("show"), 4200);
+  }
+
+  function parseBRL(v){
+    if (typeof v === "number") return v;
+    if (v === null || v === undefined) return 0;
+    // Aceita "R$ 1.234,56", "1234,56", "1234.56"
+    const s = String(v).trim();
+    // se já vier com ponto decimal, tenta direto
+    const n1 = Number(s.replace(/[^\d.-]/g,''));
+    if (!Number.isNaN(n1) && s.includes(".")) return n1;
+    // padrão BR: remove pontos de milhar e troca vírgula por ponto
+    const cleaned = s.replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',', '.');
+    const n2 = Number(cleaned);
+    return Number.isFinite(n2) ? n2 : 0;
+  }
+  function formatBRL(n){
+    return (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+  }
+  function dayKey(ts){
+    // ts pode vir "YYYY-MM-DD HH:MM:SS"
+    if (!ts) return "";
+    return String(ts).slice(0,10);
+  }
+  function inRange(d, ini, fim){
+    // d, ini, fim no formato YYYY-MM-DD
+    if (!d) return false;
+    if (ini && d < ini) return false;
+    if (fim && d > fim) return false;
+    return true;
+  }
+
+  let chartLinha=null, chartBarra=null, chartPizza=null;
+
+  function destroyCharts(){
+    [chartLinha, chartBarra, chartPizza].forEach(c=>{ try{ c && c.destroy(); }catch(e){} });
+    chartLinha=chartBarra=chartPizza=null;
+  }
+
+  function buildDailySeries(items, ini, fim, tipoView){
+    const map = new Map(); // day -> {e,s}
+    let countE=0, countS=0, totalE=0, totalS=0;
+
+    for (const ev of items){
+      const tipo = String(ev.tipo||"").toLowerCase();
+      if (tipoView !== "ambos" && tipo !== tipoView) continue;
+
+      const d = dayKey(ev.ts);
+      if (!inRange(d, ini, fim)) continue;
+
+      const val = parseBRL(ev.valor);
+      if (!map.has(d)) map.set(d, {e:0, s:0});
+      const obj = map.get(d);
+
+      if (tipo === "entrada"){ obj.e += val; totalE += val; countE++; }
+      else if (tipo === "saida" || tipo === "saída"){ obj.s += val; totalS += val; countS++; }
+    }
+
+    const days = Array.from(map.keys()).sort();
+    const entradas = days.map(d => map.get(d).e);
+    const saidas   = days.map(d => map.get(d).s);
+    return {days, entradas, saidas, totalE, totalS, countE, countS};
+  }
+
+  function buildBairroPie(items, ini, fim){
+    const m = new Map();
+    for (const ev of items){
+      const tipo = String(ev.tipo||"").toLowerCase();
+      if (tipo !== "entrada") continue;
+
+      const d = dayKey(ev.ts);
+      if (!inRange(d, ini, fim)) continue;
+
+      const bairro = (ev.bairro && String(ev.bairro).trim()) ? String(ev.bairro).trim() : "(sem bairro)";
+      const val = parseBRL(ev.valor);
+      m.set(bairro, (m.get(bairro) || 0) + val);
+    }
+    const arr = Array.from(m.entries()).sort((a,b)=>b[1]-a[1]);
+    const top = arr.slice(0,12);
+    const outros = arr.slice(12).reduce((s, x)=>s + x[1], 0);
+    if (outros > 0) top.push(["Outros", outros]);
+    return {labels: top.map(x=>x[0]), values: top.map(x=>x[1])};
+  }
+
+  function setKPIs(series, ini, fim){
+    const saldo = series.totalE - series.totalS;
+
+    $("#kpiEntradas").textContent = formatBRL(series.totalE);
+    $("#kpiEntradas2").textContent = `${series.countE} registro(s)`;
+
+    $("#kpiSaidas").textContent = formatBRL(series.totalS);
+    $("#kpiSaidas2").textContent = `${series.countS} registro(s)`;
+
+    $("#kpiSaldo").textContent = formatBRL(saldo);
+    $("#kpiSaldo2").textContent = `Saldo ${saldo >= 0 ? "positivo" : "negativo"}`;
+
+    const pIni = ini || "início";
+    const pFim = fim || "hoje";
+    $("#kpiPeriodo").textContent = `${pIni} → ${pFim}`;
+    $("#kpiPeriodo2").textContent = `${series.days.length} dia(s) com movimento`;
+  }
+
+  function renderCharts(series, pie){
+    destroyCharts();
+
+    $("#lblLinha").textContent = `${series.days.length} dia(s)`;
+    $("#lblBarra").textContent = `${series.days.length} dia(s)`;
+    $("#lblPizza").textContent = `Top ${Math.min(12, pie.labels.length)}${pie.labels.includes("Outros") ? " + Outros" : ""}`;
+
+    const ctxL = $("#chartLinha");
+    chartLinha = new Chart(ctxL, {
+      type: 'line',
+      data: {
+        labels: series.days,
+        datasets: [
+          { label: 'Entradas', data: series.entradas, tension: 0.25 },
+          { label: 'Saídas', data: series.saidas, tension: 0.25 }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e9f1ff' } },
+          tooltip: { callbacks: { label: (c)=> `${c.dataset.label}: ${formatBRL(c.parsed.y)}` } }
+        },
+        scales: {
+          x: { ticks: { color: '#9ab0d1' }, grid: { color: 'rgba(27,43,74,.35)' } },
+          y: { ticks: { color: '#9ab0d1', callback: (v)=> formatBRL(v) }, grid: { color: 'rgba(27,43,74,.35)' } }
+        }
+      }
+    });
+
+    const ctxB = $("#chartBarra");
+    chartBarra = new Chart(ctxB, {
+      type: 'bar',
+      data: {
+        labels: series.days,
+        datasets: [
+          { label: 'Entradas', data: series.entradas },
+          { label: 'Saídas', data: series.saidas }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: '#e9f1ff' } },
+          tooltip: { callbacks: { label: (c)=> `${c.dataset.label}: ${formatBRL(c.parsed.y)}` } }
+        },
+        scales: {
+          x: { ticks: { color: '#9ab0d1' }, grid: { color: 'rgba(27,43,74,.35)' } },
+          y: { ticks: { color: '#9ab0d1', callback: (v)=> formatBRL(v) }, grid: { color: 'rgba(27,43,74,.35)' } }
+        }
+      }
+    });
+
+    const ctxP = $("#chartPizza");
+    chartPizza = new Chart(ctxP, {
+      type: 'doughnut',
+      data: {
+        labels: pie.labels,
+        datasets: [{ label:'Entradas por bairro', data: pie.values }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false, // respeita o tamanho do container
+        
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#e9f1ff' } },
+          tooltip: { callbacks: { label: (c)=> `${c.label}: ${formatBRL(c.parsed)}` } }
+        }
+      }
+    });
+  }
+
+  async function fetchEvents(){
+    const limit = $("#limit").value || "5000";
+    const url = `api/listar_eventos.php?limit=${encodeURIComponent(limit)}`;
+    const r = await fetch(url, { cache: "no-store" });
+    const j = await r.json();
+    if (!r.ok || !j || j.status !== "ok" || !Array.isArray(j.items)) {
+      throw new Error("Resposta inválida de listar_eventos.php");
+    }
+    return j.items;
+  }
+
+  async function refresh(){
+    const btn = $("#btnAtualizar");
+    btn.disabled = true;
+    btn.textContent = "Atualizando…";
+    try{
+      const ini = $("#dtIni").value || "";
+      const fim = $("#dtFim").value || "";
+      const tipoView = $("#tipoView").value || "ambos";
+
+      const items = await fetchEvents();
+      const series = buildDailySeries(items, ini, fim, tipoView);
+      const pie = buildBairroPie(items, ini, fim);
+
+      setKPIs(series, ini, fim);
+      renderCharts(series, pie);
+
+      showToast("Relatórios atualizados com sucesso.", `Registros carregados: ${items.length}`);
+    }catch(err){
+      console.error(err);
+      showToast("Erro ao gerar relatórios.", String(err.message || err));
+      $("#kpiPeriodo2").textContent = "Erro ao carregar dados.";
+    }finally{
+      btn.disabled = false;
+      btn.textContent = "Atualizar";
+    }
+  }
+
+  $("#btnAtualizar").addEventListener("click", refresh);
+  $("#btnLimpar").addEventListener("click", ()=>{
+    $("#dtIni").value = "";
+    $("#dtFim").value = "";
+    $("#tipoView").value = "ambos";
+    $("#limit").value = "5000";
+    refresh();
+  });
+
+  // carrega ao abrir
+  refresh();
+</script>
+</body>
+</html>
