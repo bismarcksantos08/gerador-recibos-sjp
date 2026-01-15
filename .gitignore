@@ -1,0 +1,15 @@
+# Arquivos de configuração sensíveis
+api/config.php
+api/conexao.php
+
+# Ambiente local
+.env
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
